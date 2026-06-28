@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+
+# Pull in the prebuilt Qdrant binary + its default config/storage layout from
+# the official image, instead of building Qdrant from source ourselves.
+COPY --from=qdrant/qdrant:latest /qdrant /qdrant
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app/ ./app/
+COPY data/ ./data/
+COPY start.sh .
+RUN chmod +x start.sh
+
+EXPOSE 8000
+
+CMD ["./start.sh"]
