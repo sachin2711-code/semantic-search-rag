@@ -1,8 +1,8 @@
 function relevancePercent(score) {
-  // Cross-encoder scores are unbounded logits (observed roughly -12 to +10 here).
-  // Clamp and rescale to 0-100% purely so results are visually comparable to each other.
-  const clamped = Math.max(-12, Math.min(10, score));
-  return Math.round(((clamped + 12) / 22) * 100);
+  // Cohere's rerank relevance_score is already a 0-1 probability —
+  // no clamping/rescaling needed, unlike the old local cross-encoder's
+  // unbounded logit scores.
+  return Math.round(score * 100);
 }
 
 export default function ResultCard({ result, index }) {

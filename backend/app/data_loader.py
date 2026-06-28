@@ -8,10 +8,10 @@ import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from rank_bm25 import BM25Okapi
-from sentence_transformers import CrossEncoder, SentenceTransformer
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
 COLLECTION_NAME = "pdf_chunks"
 
 
@@ -20,13 +20,10 @@ def tokenize(text: str):
 
 
 def connect_to_qdrant(retries=10, delay=2):
-    """Qdrant's container may take a moment to be ready when everything
-    starts together via docker compose. Retry a few times instead of
-    failing immediately on the first connection attempt."""
     for attempt in range(retries):
         try:
-            client = QdrantClient(url=QDRANT_URL)
-            client.get_collections()  # cheap call just to confirm it's reachable
+            client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=60)
+            client.get_collections()
             return client
         except Exception as e:
             print(f"Qdrant not ready yet (attempt {attempt + 1}/{retries}): {e}")
@@ -42,12 +39,6 @@ def load_artifacts():
 
     bm25_corpus = [tokenize(c["text"]) for c in chunk_store]
     bm25 = BM25Okapi(bm25_corpus)
-
-    print("Loading embedding model...")
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-
-    print("Loading reranker...")
-    reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
     print(f"Connecting to Qdrant at {QDRANT_URL}...")
     qdrant = connect_to_qdrant()
@@ -79,6 +70,4 @@ def load_artifacts():
         "chunk_store": chunk_store,
         "qdrant": qdrant,
         "bm25": bm25,
-        "model": model,
-        "reranker": reranker,
     }
