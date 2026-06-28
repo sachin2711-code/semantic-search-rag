@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()  # must run before app.rag is imported, since it reads GROQ_API_KEY at import time
 
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,9 +26,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Semantic Search API", lifespan=lifespan)
 
+# Local dev origins are always allowed. FRONTEND_URL adds the deployed
+# Vercel domain once you have it — set as an env var, no code change needed.
+allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+frontend_url = os.environ.get("FRONTEND_URL", "").strip()
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,7 +43,12 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "chunks_loaded": len(artifacts.get("chunk_store", []))}
+    return {
+        "status": "ok",
+        "chunks_loaded": len(artifacts.get("chunk_store", [])),
+        "allowed_origins": allowed_origins,
+        "frontend_url_repr": repr(frontend_url),
+    }
 
 
 @app.post("/search", response_model=SearchResponse)
