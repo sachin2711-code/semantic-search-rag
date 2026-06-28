@@ -43,12 +43,7 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "chunks_loaded": len(artifacts.get("chunk_store", [])),
-        "allowed_origins": allowed_origins,
-        "frontend_url_repr": repr(frontend_url),
-    }
+    return {"status": "ok", "chunks_loaded": len(artifacts.get("chunk_store", []))}
 
 
 @app.post("/search", response_model=SearchResponse)
